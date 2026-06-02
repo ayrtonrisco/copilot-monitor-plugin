@@ -73,7 +73,16 @@
 
     function renderOverview(data) {
         const k = data.kpis || {};
-        set('ov-today-tokens', '~' + fmtTokens(k.todayTokens));
+        const hasData = k.todayTokens > 0 || (data.recentInteractions && data.recentInteractions.length > 0);
+        if (!hasData) {
+            const panel = document.getElementById('panel-overview');
+            if (panel) {
+                const tbl = document.getElementById('recent-table');
+                if (tbl) tbl.innerHTML = '<tr><td colspan="5" class="no-data">No Copilot usage detected yet. Use GitHub Copilot (chat or completions) and this panel will update automatically. Token values marked ~ are estimates.</td></tr>';
+            }
+        }
+        const prefix = k.isEstimated !== false ? '~' : '';
+        set('ov-today-tokens', prefix + fmtTokens(k.todayTokens));
         set('ov-today-cost', fmtCost(k.todayCostUsd));
         set('ov-acceptance', k.acceptanceRate ? (k.acceptanceRate * 100).toFixed(1) + '%' : '—');
         set('ov-fluency', k.fluencyScore || '—');
@@ -150,6 +159,10 @@
         set('tok-month', '~' + fmtTokens(k.monthInputTokens + k.monthOutputTokens));
         set('tok-month-cost', fmtCost(k.monthCostUsd));
         set('tok-proj', fmtCost((data.projection || {}).projectedTotalUsd));
+        const cb = data.costBreakdown || {};
+        set('tok-input-cost', fmtCost(cb.inputCostUsd));
+        set('tok-output-cost', fmtCost(cb.outputCostUsd));
+        set('tok-cache-cost', fmtCost(cb.cacheReadCostUsd));
 
         const proj = data.projection || {};
         const budgetUsd = proj.budgetUsd || 0;

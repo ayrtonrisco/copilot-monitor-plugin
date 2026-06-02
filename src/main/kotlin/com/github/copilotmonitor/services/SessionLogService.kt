@@ -35,12 +35,14 @@ class SessionLogService : AutoCloseable {
     }
 
     private var ideName: String = "IdeaIC2024.1"
+    private val ideaLogWatcher = IdeaLogWatcher()
 
     fun init() {
         ideName = detectIdeName()
         registerFileWatcher()
         startPolling()
         processExistingFiles()
+        ideaLogWatcher.start()
     }
 
     private fun detectIdeName(): String {
@@ -66,7 +68,10 @@ class SessionLogService : AutoCloseable {
             )
             SystemInfo.isWindows -> listOf(
                 Paths.get(System.getenv("APPDATA") ?: home, "JetBrains", ideName, "copilot"),
-                Paths.get(System.getenv("APPDATA") ?: home, "JetBrains", ideName, "log")
+                Paths.get(System.getenv("APPDATA") ?: home, "JetBrains", ideName, "log"),
+                Paths.get(System.getenv("LOCALAPPDATA") ?: home, "JetBrains", ideName, "copilot"),
+                Paths.get(System.getenv("LOCALAPPDATA") ?: home, "JetBrains", ideName, "log"),
+                Paths.get(System.getenv("LOCALAPPDATA") ?: home, "github-copilot")
             )
             else -> emptyList()
         }
@@ -153,5 +158,6 @@ class SessionLogService : AutoCloseable {
 
     override fun close() {
         scheduler.shutdown()
+        ideaLogWatcher.stop()
     }
 }

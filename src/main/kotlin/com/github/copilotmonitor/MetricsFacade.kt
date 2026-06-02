@@ -38,6 +38,9 @@ class MetricsFacade {
     fun getDailyCostUsd() = costService.getDailyTotal()
     fun getMonthlyCostUsd() = costService.getMonthlyTotal()
     fun getMonthlyProjection(): MonthlyProjection = costService.getProjection()
+    fun getDailyInputCostUsd() = costService.getDailyInputCostUsd()
+    fun getDailyOutputCostUsd() = costService.getDailyOutputCostUsd()
+    fun getDailyCacheReadCostUsd() = costService.getDailyCacheReadCostUsd()
 
     fun getCacheStats(days: Int = 7): CacheStats = cacheService.getStats(days)
 

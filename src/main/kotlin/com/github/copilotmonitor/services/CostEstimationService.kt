@@ -33,6 +33,31 @@ open class CostEstimationService {
         return interactions.sumOf { estimateForInteraction(it) }
     }
 
+    fun getDailyInputCostUsd(): Double {
+        val interactions = storage.getInteractionsForPeriod(1)
+        return interactions.sumOf { i ->
+            val config = getModelRepo().get(i.model)
+            val freshInput = (i.inputTokens - i.cacheReadTokens).coerceAtLeast(0)
+            (freshInput / 1000.0) * config.costPer1kInputUsd * config.premiumMultiplier
+        }
+    }
+
+    fun getDailyOutputCostUsd(): Double {
+        val interactions = storage.getInteractionsForPeriod(1)
+        return interactions.sumOf { i ->
+            val config = getModelRepo().get(i.model)
+            (i.outputTokens / 1000.0) * config.costPer1kOutputUsd * config.premiumMultiplier
+        }
+    }
+
+    fun getDailyCacheReadCostUsd(): Double {
+        val interactions = storage.getInteractionsForPeriod(1)
+        return interactions.sumOf { i ->
+            val config = getModelRepo().get(i.model)
+            (i.cacheReadTokens / 1000.0) * config.costPer1kCacheReadUsd * config.premiumMultiplier
+        }
+    }
+
     fun getMonthlyTotal(): Double {
         val now = LocalDate.now()
         val daysElapsed = now.dayOfMonth

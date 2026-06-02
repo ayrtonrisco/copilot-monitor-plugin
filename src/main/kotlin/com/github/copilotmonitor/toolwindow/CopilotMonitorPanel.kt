@@ -5,6 +5,8 @@ import com.github.copilotmonitor.services.CacheAnalysisService
 import com.github.copilotmonitor.services.ContextWindowService
 import com.github.copilotmonitor.services.PerformanceService
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
@@ -19,7 +21,15 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
+import org.cef.browser.CefBrowser
+import org.cef.browser.CefFrame
+import org.cef.handler.CefLoadHandlerAdapter
 import java.awt.BorderLayout
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JPanel
@@ -31,6 +41,9 @@ class CopilotMonitorPanel(private val project: Project) : Disposable {
     private var browser: JBCefBrowser? = null
     private var jsQuery: JBCefJSQuery? = null
     private var currentPanel = "overview"
+    private val refreshScheduler = Executors.newSingleThreadScheduledExecutor { r ->
+        Thread(r, "copilot-monitor-panel-refresh").also { it.isDaemon = true }
+    }
 
     init {
         _component = if (JBCefApp.isSupported()) {
@@ -41,6 +54,17 @@ class CopilotMonitorPanel(private val project: Project) : Disposable {
     }
 
     val component: JComponent get() = _component
+
+    private fun extractAndGetWebviewUrl(): String {
+        val webviewDir = Paths.get(PathManager.getSystemPath(), "copilot-monitor", "webview")
+        Files.createDirectories(webviewDir)
+        listOf("index.html", "dashboard.js", "charts.js", "chart.umd.min.js").forEach { name ->
+            javaClass.classLoader.getResourceAsStream("webview/$name")?.use { input ->
+                Files.copy(input, webviewDir.resolve(name), StandardCopyOption.REPLACE_EXISTING)
+            }
+        }
+        return webviewDir.resolve("index.html").toUri().toString()
+    }
 
     private fun createJcefPanel(): JComponent {
         val b = JBCefBrowser()
@@ -54,9 +78,19 @@ class CopilotMonitorPanel(private val project: Project) : Disposable {
             JBCefJSQuery.Response("ok")
         }
 
-        val url = javaClass.classLoader.getResource("webview/index.html")?.toExternalForm()
-            ?: "about:blank"
-        b.loadURL(url)
+        b.jbCefClient.addLoadHandler(object : CefLoadHandlerAdapter() {
+            override fun onLoadEnd(browser: CefBrowser?, frame: CefFrame?, httpStatusCode: Int) {
+                if (frame?.isMain == true) {
+                    ApplicationManager.getApplication().invokeLater { pushPanelData("overview") }
+                }
+            }
+        }, b.cefBrowser)
+
+        b.loadURL(extractAndGetWebviewUrl())
+
+        refreshScheduler.scheduleWithFixedDelay({
+            ApplicationManager.getApplication().invokeLater { pushPanelData(currentPanel) }
+        }, 30, 30, TimeUnit.SECONDS)
 
         val panel = JPanel(BorderLayout())
         panel.add(b.component, BorderLayout.CENTER)
@@ -199,6 +233,11 @@ class CopilotMonitorPanel(private val project: Project) : Disposable {
                     })
                 }
             }
+            putJsonObject("costBreakdown") {
+                put("inputCostUsd", facade.getDailyInputCostUsd())
+                put("outputCostUsd", facade.getDailyOutputCostUsd())
+                put("cacheReadCostUsd", facade.getDailyCacheReadCostUsd())
+            }
         }.toString()
     }
 
@@ -318,5 +357,7 @@ class CopilotMonitorPanel(private val project: Project) : Disposable {
         } catch (_: Exception) {}
     }
 
-    override fun dispose() {}
+    override fun dispose() {
+        refreshScheduler.shutdown()
+    }
 }
