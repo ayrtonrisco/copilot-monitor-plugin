@@ -2,7 +2,7 @@
 
 [![JetBrains Plugin](https://img.shields.io/badge/JetBrains%20Marketplace-Copilot%20Monitor-blue?logo=jetbrains&style=flat-square)](https://plugins.jetbrains.com/plugin/32072-copilot-monitor)
 [![Version](https://img.shields.io/badge/version-1.1.0-brightgreen?style=flat-square)](https://github.com/ayrtonrisco/copilot-monitor-plugin/releases)
-[![Platform](https://img.shields.io/badge/platform-2024.1%2B-orange?style=flat-square)](https://plugins.jetbrains.com/plugin/32072-copilot-monitor)
+[![Platform](https://img.shields.io/badge/platform-2025.1%2B-orange?style=flat-square)](https://plugins.jetbrains.com/plugin/32072-copilot-monitor)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square)](LICENSE)
 [![Build](https://img.shields.io/github/actions/workflow/status/ayrtonrisco/copilot-monitor-plugin/build.yml?branch=main&style=flat-square)](https://github.com/ayrtonrisco/copilot-monitor-plugin/actions)
 
@@ -63,12 +63,12 @@ Track context window utilization, LLM cache efficiency, token consumption, laten
 
 | IDE | Min version |
 |-----|-------------|
-| IntelliJ IDEA | 2024.1 |
-| PyCharm | 2024.1 |
-| WebStorm | 2024.1 |
-| GoLand | 2024.1 |
-| Rider | 2024.1 |
-| CLion | 2024.1 |
+| IntelliJ IDEA | 2025.1 |
+| PyCharm | 2025.1 |
+| WebStorm | 2025.1 |
+| GoLand | 2025.1 |
+| Rider | 2025.1 |
+| CLion | 2025.1 |
 
 ---
 
