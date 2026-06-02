@@ -3,7 +3,7 @@
 [![JetBrains Plugin](https://img.shields.io/badge/JetBrains%20Marketplace-Copilot%20Monitor-blue?logo=jetbrains&style=flat-square)](https://plugins.jetbrains.com/plugin/32072-copilot-monitor)
 [![Version](https://img.shields.io/badge/version-1.1.0-brightgreen?style=flat-square)](https://github.com/ayrtonrisco/copilot-monitor-plugin/releases)
 [![Platform](https://img.shields.io/badge/platform-2024.1%2B-orange?style=flat-square)](https://plugins.jetbrains.com/plugin/32072-copilot-monitor)
-[![License](https://img.shields.io/github/license/ayrtonrisco/copilot-monitor-plugin?style=flat-square)](LICENSE)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square)](LICENSE)
 [![Build](https://img.shields.io/github/actions/workflow/status/ayrtonrisco/copilot-monitor-plugin/build.yml?branch=main&style=flat-square)](https://github.com/ayrtonrisco/copilot-monitor-plugin/actions)
 
 **Real-time GitHub Copilot AI usage monitoring for IntelliJ-based IDEs.**
@@ -255,4 +255,4 @@ Please read the architecture docs in [`docs/specs/`](docs/specs/) before contrib
 
 ## License
 
-[Apache 2.0](LICENSE) — © 2026 Ayrton Rafael Risco Torres
+[GPL-3.0](LICENSE) — © 2026 Ayrton Rafael Risco Torres
