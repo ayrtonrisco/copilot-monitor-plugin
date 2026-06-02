@@ -110,11 +110,13 @@ class MetricsStorageServiceTest {
         assertEquals(1, results.size)
     }
 
+    private var seqCounter = 0L
+
     private fun sampleInteraction(
         inputTokens: Long = 1000,
         outputTokens: Long = 200
     ) = Interaction(
-        timestamp = Instant.now(),
+        timestamp = Instant.now().plusMillis(seqCounter++),
         model = "gpt-4o",
         provider = "openai",
         featureType = FeatureType.CHAT_ASK,

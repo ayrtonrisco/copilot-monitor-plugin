@@ -4,27 +4,26 @@ import com.github.copilotmonitor.notifications.AlertNotificationService
 import com.github.copilotmonitor.services.ModelConfigRepository
 import com.github.copilotmonitor.services.OtelExportService
 import com.github.copilotmonitor.services.SessionLogService
-import com.intellij.ide.AppLifecycleListener
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.startup.StartupActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class CopilotMonitorStartupListener : AppLifecycleListener {
+class CopilotMonitorStartupActivity : StartupActivity.DumbAware {
 
-    private val logger = thisLogger()
-
-    override fun appStarted() {
+    override fun runActivity(project: Project) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 service<ModelConfigRepository>().init()
                 service<SessionLogService>().init()
                 service<AlertNotificationService>().init()
                 service<OtelExportService>().init()
-                logger.info("Copilot Monitor services initialized")
+                thisLogger().info("Copilot Monitor services initialized")
             } catch (e: Exception) {
-                logger.warn("Copilot Monitor startup failed (non-critical): ${e.message}")
+                thisLogger().warn("Copilot Monitor startup failed (non-critical): ${e.message}")
             }
         }
     }
