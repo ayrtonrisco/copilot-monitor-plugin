@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Copilot Monitor</title>
+    <style>
+        :root {
+            --bg: #1e1e1e;
+            --bg2: #252526;
+            --bg3: #2d2d2d;
+            --border: #3c3c3c;
+            --text: #cccccc;
+            --text2: #9d9d9d;
+            --accent: #0078d4;
+            --green: #4ec9b0;
+            --yellow: #dcdcaa;
+            --red: #f44747;
+            --orange: #ce9178;
+            --blue: #569cd6;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 13px; }
+
+        .nav { display: flex; flex-wrap: wrap; background: var(--bg2); border-bottom: 1px solid var(--border); padding: 4px 8px; gap: 4px; }
+        .nav button { background: transparent; border: 1px solid transparent; color: var(--text2); padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; }
+        .nav button.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .nav button:hover:not(.active) { background: var(--bg3); color: var(--text); }
+
+        .panel { display: none; padding: 12px; }
+        .panel.active { display: block; }
+
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-bottom: 16px; }
+        .kpi-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 10px; }
+        .kpi-label { font-size: 11px; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .kpi-value { font-size: 20px; font-weight: 600; color: var(--text); }
+        .kpi-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+        .section { margin-bottom: 16px; }
+        .section-title { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+
+        .chart-container { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 12px; }
+
+        .progress-bar { background: var(--bg3); border-radius: 2px; height: 8px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+        .progress-fill.green { background: var(--green); }
+        .progress-fill.yellow { background: var(--yellow); }
+        .progress-fill.red { background: var(--red); }
+
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { text-align: left; padding: 6px 8px; color: var(--text2); border-bottom: 1px solid var(--border); font-weight: 500; }
+        td { padding: 5px 8px; border-bottom: 1px solid var(--bg3); }
+        tr:hover td { background: var(--bg3); }
+
+        .badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; }
+        .badge-green { background: rgba(78,201,176,0.2); color: var(--green); }
+        .badge-yellow { background: rgba(220,220,170,0.2); color: var(--yellow); }
+        .badge-red { background: rgba(244,71,71,0.2); color: var(--red); }
+        .badge-blue { background: rgba(86,156,214,0.2); color: var(--blue); }
+
+        .rec-list { list-style: none; }
+        .rec-item { display: flex; align-items: flex-start; gap: 8px; padding: 6px; background: var(--bg2); border-radius: 3px; margin-bottom: 4px; border-left: 3px solid var(--accent); font-size: 12px; }
+        .rec-item.HIGH { border-color: var(--red); }
+        .rec-item.INFO { border-color: var(--blue); }
+
+        canvas { max-width: 100%; }
+
+        .context-bar-wrap { margin-bottom: 8px; }
+        .context-bar-label { display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 12px; }
+        .util-pct { font-size: 28px; font-weight: 700; }
+
+        .no-data { color: var(--text2); font-style: italic; padding: 20px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<nav class="nav">
+    <button class="active" onclick="switchPanel('overview')">Overview</button>
+    <button onclick="switchPanel('context')">Context</button>
+    <button onclick="switchPanel('tokens')">Tokens</button>
+    <button onclick="switchPanel('cache')">Cache</button>
+    <button onclick="switchPanel('performance')">Perf</button>
+    <button onclick="switchPanel('models')">Models</button>
+</nav>
+
+<!-- Overview Panel -->
+<div id="panel-overview" class="panel active">
+    <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-label">Today Tokens</div><div class="kpi-value" id="ov-today-tokens">—</div><div class="kpi-sub" id="ov-today-cost">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Acceptance Rate</div><div class="kpi-value" id="ov-acceptance">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Fluency Score</div><div class="kpi-value" id="ov-fluency">—</div><div class="kpi-sub" id="ov-fluency-badge"></div></div>
+        <div class="kpi-card"><div class="kpi-label">Monthly Cost</div><div class="kpi-value" id="ov-month-cost">—</div></div>
+    </div>
+    <div class="section">
+        <div class="section-title">Token Trend (7d)</div>
+        <div class="chart-container"><canvas id="chart-trend" height="120"></canvas></div>
+    </div>
+    <div class="section">
+        <div class="section-title">Recent Interactions</div>
+        <div class="chart-container">
+            <table>
+                <thead><tr><th>Model</th><th>Input</th><th>Output</th><th>Type</th><th>Latency</th></tr></thead>
+                <tbody id="recent-table"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Context Panel -->
+<div id="panel-context" class="panel">
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-label">Utilization</div>
+            <div class="kpi-value util-pct" id="ctx-pct">—</div>
+            <div class="kpi-sub" id="ctx-model">—</div>
+        </div>
+        <div class="kpi-card"><div class="kpi-label">Open Tabs</div><div class="kpi-value" id="ctx-tabs">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Used Tokens</div><div class="kpi-value" id="ctx-used">—</div><div class="kpi-sub" id="ctx-max">—</div></div>
+    </div>
+    <div class="section">
+        <div class="section-title">Context Window</div>
+        <div class="chart-container">
+            <div class="context-bar-wrap">
+                <div class="context-bar-label"><span>Context Usage</span><span id="ctx-bar-label">—</span></div>
+                <div class="progress-bar"><div class="progress-fill" id="ctx-bar" style="width:0%"></div></div>
+            </div>
+        </div>
+    </div>
+    <div class="section">
+        <div class="section-title">Recommendations</div>
+        <ul class="rec-list" id="ctx-recs"></ul>
+    </div>
+</div>
+
+<!-- Tokens Panel -->
+<div id="panel-tokens" class="panel">
+    <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-label">Today Input</div><div class="kpi-value" id="tok-today-in">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Today Output</div><div class="kpi-value" id="tok-today-out">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Today Cost</div><div class="kpi-value" id="tok-today-cost">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Month Tokens</div><div class="kpi-value" id="tok-month">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Month Cost</div><div class="kpi-value" id="tok-month-cost">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Projected</div><div class="kpi-value" id="tok-proj">—</div></div>
+    </div>
+    <div class="section">
+        <div class="section-title">Budget</div>
+        <div class="chart-container">
+            <div class="context-bar-wrap">
+                <div class="context-bar-label"><span id="tok-budget-label">No budget set</span><span id="tok-budget-pct"></span></div>
+                <div class="progress-bar"><div class="progress-fill" id="tok-budget-bar" style="width:0%"></div></div>
+            </div>
+        </div>
+    </div>
+    <div class="section">
+        <div class="section-title">Daily Token Usage (30d)</div>
+        <div class="chart-container"><canvas id="chart-daily" height="140"></canvas></div>
+    </div>
+    <div class="section">
+        <div class="section-title">Model Breakdown</div>
+        <div class="chart-container">
+            <table>
+                <thead><tr><th>Model</th><th>Tokens</th><th>Cost</th><th>Share</th></tr></thead>
+                <tbody id="model-table"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Cache Panel -->
+<div id="panel-cache" class="panel">
+    <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-label">Hit Rate (7d)</div><div class="kpi-value" id="cache-hit-rate">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Cache Read</div><div class="kpi-value" id="cache-read">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Savings</div><div class="kpi-value" id="cache-savings">—</div></div>
+    </div>
+    <div class="section">
+        <div class="section-title">Hit Rate Trend (30d)</div>
+        <div class="chart-container"><canvas id="chart-cache-trend" height="120"></canvas></div>
+    </div>
+    <div class="section">
+        <div class="section-title">Recommendations</div>
+        <ul class="rec-list" id="cache-recs"></ul>
+    </div>
+</div>
+
+<!-- Performance Panel -->
+<div id="panel-performance" class="panel">
+    <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-label">P50 Latency</div><div class="kpi-value" id="perf-p50">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">P90 Latency</div><div class="kpi-value" id="perf-p90">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">TTFT P50</div><div class="kpi-value" id="perf-ttft">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Error Rate</div><div class="kpi-value" id="perf-error">—</div></div>
+    </div>
+    <div class="section">
+        <div class="section-title">Latency Histogram</div>
+        <div class="chart-container"><canvas id="chart-histogram" height="120"></canvas></div>
+    </div>
+    <div class="section">
+        <div class="section-title">Finish Reasons</div>
+        <div class="chart-container"><canvas id="chart-finish" height="100"></canvas></div>
+    </div>
+</div>
+
+<!-- Models Panel -->
+<div id="panel-models" class="panel">
+    <div class="section">
+        <div class="section-title">Model Usage (30d)</div>
+        <div class="chart-container"><canvas id="chart-model-pie" height="180"></canvas></div>
+    </div>
+    <div class="section">
+        <div class="section-title">Model Comparison</div>
+        <div class="chart-container" style="overflow-x:auto">
+            <table>
+                <thead><tr><th>Model</th><th>Max Prompt</th><th>Context</th><th>Premium</th><th>Cache</th><th>$/1K</th></tr></thead>
+                <tbody id="model-comparison-table"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="dashboard.js"></script>
+</body>
+</html>

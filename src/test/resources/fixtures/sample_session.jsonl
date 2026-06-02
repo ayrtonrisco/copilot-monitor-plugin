@@ -1,0 +1,3 @@
+{"event":"request","ts":"2026-06-02T10:31:00Z","model":"claude-sonnet-4-20250514","inputTokens":8400,"outputTokens":620,"cacheReadTokens":6200,"latencyMs":2100,"sessionId":"fixture-002"}
+{"event":"tool_call","ts":"2026-06-02T10:31:02Z","tool":"read_file","durationMs":45}
+{"event":"request","ts":"2026-06-02T10:31:05Z","model":"claude-sonnet-4-20250514","inputTokens":9100,"outputTokens":290,"sessionId":"fixture-002"}

@@ -1,0 +1,80 @@
+<idea-plugin>
+    <id>com.github.copilotmonitor</id>
+    <name>Copilot Monitor</name>
+    <vendor email="support@copilot-monitor.dev" url="https://github.com/copilot-monitor">Copilot Monitor</vendor>
+
+    <description><![CDATA[
+        Monitor GitHub Copilot AI usage in real time: context window utilization, LLM cache efficiency,
+        token consumption, latency, and productivity metrics. Privacy-first: all data local by default.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+
+        <!-- Application Services -->
+        <applicationService
+            serviceImplementation="com.github.copilotmonitor.services.MetricsStorageService"/>
+        <applicationService
+            serviceImplementation="com.github.copilotmonitor.services.ModelConfigRepository"/>
+        <applicationService
+            serviceImplementation="com.github.copilotmonitor.services.SessionLogService"/>
+        <applicationService
+            serviceImplementation="com.github.copilotmonitor.services.CacheAnalysisService"/>
+        <applicationService
+            serviceImplementation="com.github.copilotmonitor.services.CostEstimationService"/>
+        <applicationService
+            serviceImplementation="com.github.copilotmonitor.services.PerformanceService"/>
+        <applicationService
+            serviceImplementation="com.github.copilotmonitor.services.ProductivityService"/>
+        <applicationService
+            serviceImplementation="com.github.copilotmonitor.services.ModelAnalysisService"/>
+        <applicationService
+            serviceImplementation="com.github.copilotmonitor.services.OtelExportService"/>
+        <applicationService
+            serviceImplementation="com.github.copilotmonitor.notifications.AlertNotificationService"/>
+        <applicationService
+            serviceImplementation="com.github.copilotmonitor.MetricsFacade"/>
+        <applicationService
+            serviceImplementation="com.github.copilotmonitor.settings.CopilotMonitorSettings"
+            configurationSchemaKey="CopilotMonitorSettings"/>
+
+        <!-- Project Services -->
+        <projectService
+            serviceImplementation="com.github.copilotmonitor.services.ContextWindowService"/>
+
+        <!-- Tool Window -->
+        <toolWindow
+            id="Copilot Monitor"
+            anchor="right"
+            factoryClass="com.github.copilotmonitor.toolwindow.CopilotMonitorToolWindowFactory"
+            secondary="false"/>
+
+        <!-- Status Bar Widget -->
+        <statusBarWidgetFactory
+            implementation="com.github.copilotmonitor.statusbar.TokenUsageStatusBarWidgetFactory"
+            id="CopilotMonitor.TokenUsage"
+            order="last"/>
+
+        <!-- Notifications -->
+        <notificationGroup
+            id="CopilotMonitor.Alerts"
+            displayType="BALLOON"
+            toolWindowId="Copilot Monitor"/>
+
+        <!-- Settings -->
+        <applicationConfigurable
+            parentId="tools"
+            instance="com.github.copilotmonitor.settings.CopilotMonitorConfigurable"
+            id="com.github.copilotmonitor.settings.CopilotMonitorConfigurable"
+            displayName="Copilot Monitor"/>
+
+    </extensions>
+
+    <applicationListeners>
+        <listener
+            class="com.github.copilotmonitor.CopilotMonitorStartupListener"
+            topic="com.intellij.ide.AppLifecycleListener"/>
+    </applicationListeners>
+
+</idea-plugin>

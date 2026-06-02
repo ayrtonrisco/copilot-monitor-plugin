@@ -1,0 +1,15 @@
+{
+  "sessionId": "fixture-session-001",
+  "model": "gpt-4o",
+  "provider": "openai",
+  "featureType": "CHAT_ASK",
+  "timestamp": "2026-06-02T10:30:00Z",
+  "usage": {
+    "prompt_tokens": 4200,
+    "completion_tokens": 380,
+    "cache_read_input_tokens": 3100,
+    "cache_creation_input_tokens": 0
+  },
+  "latencyMs": 1240,
+  "finishReason": "stop"
+}
