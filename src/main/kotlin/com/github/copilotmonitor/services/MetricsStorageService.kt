@@ -4,6 +4,7 @@ import com.github.copilotmonitor.model.DailySummary
 import com.github.copilotmonitor.model.FeatureType
 import com.github.copilotmonitor.model.FinishReason
 import com.github.copilotmonitor.model.Interaction
+import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.thisLogger
 import java.nio.file.Files
@@ -28,9 +29,7 @@ open class MetricsStorageService {
     open fun <T> withConnection(block: (Connection) -> T): T = block(_connection)
 
     private fun getDbPath(): Path {
-        val systemDir = System.getProperty("idea.system.path")
-            ?: (System.getProperty("user.home") + "/.copilot-monitor")
-        val dir = Paths.get(systemDir, "copilot-monitor")
+        val dir = Paths.get(PathManager.getSystemPath(), "copilot-monitor")
         Files.createDirectories(dir)
         return dir.resolve("metrics.db")
     }

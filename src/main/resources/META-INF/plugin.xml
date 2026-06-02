@@ -75,6 +75,9 @@
         <listener
             class="com.github.copilotmonitor.CopilotMonitorStartupListener"
             topic="com.intellij.ide.AppLifecycleListener"/>
+        <listener
+            class="com.github.copilotmonitor.CopilotMonitorDynamicPluginListener"
+            topic="com.intellij.ide.plugins.DynamicPluginListener"/>
     </applicationListeners>
 
 </idea-plugin>

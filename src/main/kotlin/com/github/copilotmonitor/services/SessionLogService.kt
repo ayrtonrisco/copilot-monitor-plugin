@@ -20,6 +20,7 @@ import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 @Service(Service.Level.APP)
 class SessionLogService : AutoCloseable {
@@ -36,13 +37,16 @@ class SessionLogService : AutoCloseable {
 
     private var ideName: String = "IdeaIC2024.1"
     private val ideaLogWatcher = IdeaLogWatcher()
+    private val initialized = AtomicBoolean(false)
 
     fun init() {
+        if (!initialized.compareAndSet(false, true)) return
         ideName = detectIdeName()
         registerFileWatcher()
         startPolling()
         processExistingFiles()
         ideaLogWatcher.start()
+        logger.info("[CopilotMonitor] SessionLogService initialized, watching idea.log")
     }
 
     private fun detectIdeName(): String {
