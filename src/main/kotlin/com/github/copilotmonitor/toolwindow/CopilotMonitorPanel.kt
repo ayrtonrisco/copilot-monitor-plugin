@@ -170,15 +170,15 @@ class CopilotMonitorPanel(private val project: Project) : Disposable {
         val status = contextService?.getCurrentStatus()
         return buildJsonObject {
             put("panel", "context")
-            if (status != null) {
-                put("usedTokens", status.usedTokensEstimate)
-                put("maxPrompt", status.maxPromptTokens)
-                put("utilizationPct", status.utilizationPct)
-                put("openTabCount", status.openTabCount)
-                put("currentModel", status.currentModel)
-                put("warning", status.warning?.name ?: "")
-                putJsonArray("recommendations") {
-                    contextService.generateRecommendations(status).forEach { rec: String ->
+            put("usedTokens", status?.usedTokensEstimate ?: 0L)
+            put("maxPrompt", status?.maxPromptTokens ?: 64000L)
+            put("utilizationPct", status?.utilizationPct ?: 0.0)
+            put("openTabCount", status?.openTabCount ?: 0)
+            put("currentModel", status?.currentModel ?: "unknown")
+            put("warning", status?.warning?.name ?: "")
+            putJsonArray("recommendations") {
+                if (status != null) {
+                    contextService?.generateRecommendations(status)?.forEach { rec: String ->
                         add(JsonPrimitive(rec))
                     }
                 }

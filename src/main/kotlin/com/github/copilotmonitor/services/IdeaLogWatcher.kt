@@ -54,6 +54,9 @@ class IdeaLogWatcher {
     // Finish reason companion line
     private val finishRegex = Regex("""#copilot.*finish reason: \[(\w+)\]""")
 
+    // Only these operations represent actual AI inference calls (not auth/telemetry/capabilities)
+    private val aiOperations = setOf("fetchchat", "fetchcompletion", "fetchagent", "bgagent")
+
     // Timestamp at start of log line
     private val tsRegex = Regex("""^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})""")
 
@@ -140,10 +143,11 @@ class IdeaLogWatcher {
                 val completionTokens  = metricsMatch.groupValues[2].toLongOrNull() ?: 0L
                 val cachedTokens      = metricsMatch.groupValues[3].toLongOrNull() ?: 0L
                 val ts = tsRegex.find(line)?.groupValues?.get(1)
+                val model = resolveModel()
                 val interaction = Interaction(
                     timestamp          = parseTimestamp(ts),
-                    model              = currentModel,
-                    provider           = inferProvider(currentModel),
+                    model              = model,
+                    provider           = inferProvider(model),
                     featureType        = FeatureType.CHAT_ASK,
                     inputTokens        = promptTokens,
                     outputTokens       = completionTokens,
@@ -170,13 +174,17 @@ class IdeaLogWatcher {
             }
 
             // ── fetchChat: track latency, use as fallback if no roundMetricsTracker ──
+            // Only track known AI inference operations; ignore auth, telemetry, capability checks
             val reqMatch = requestRegex.find(line)
             if (reqMatch != null) {
-                pendingOperation  = reqMatch.groupValues[1]
-                pendingStatus     = reqMatch.groupValues[2].toIntOrNull() ?: 200
-                pendingLatencyMs  = reqMatch.groupValues[3].toDoubleOrNull()?.toLong() ?: -1L
-                pendingTimestamp  = parseTimestamp(tsRegex.find(line)?.groupValues?.get(1))
-                metricsSeenSinceFetchChat = false
+                val op = reqMatch.groupValues[1]
+                if (op.lowercase() in aiOperations) {
+                    pendingOperation  = op
+                    pendingStatus     = reqMatch.groupValues[2].toIntOrNull() ?: 200
+                    pendingLatencyMs  = reqMatch.groupValues[3].toDoubleOrNull()?.toLong() ?: -1L
+                    pendingTimestamp  = parseTimestamp(tsRegex.find(line)?.groupValues?.get(1))
+                    metricsSeenSinceFetchChat = false
+                }
                 continue
             }
 
@@ -202,6 +210,13 @@ class IdeaLogWatcher {
         }
     }
 
+    private fun resolveModel(): String {
+        if (currentModel != "unknown") return currentModel
+        return try {
+            service<ModelConfigRepository>().getLastKnownModel() ?: "gpt-4o"
+        } catch (_: Exception) { "gpt-4o" }
+    }
+
     private fun emitFallback(op: String, status: Int, latencyMs: Long, fr: FinishReason, ts: Instant) {
         val estimatedOut   = if (latencyMs > 0) (latencyMs / 5L).coerceAtMost(2000L) else 300L
         val featureType = when (op.lowercase()) {
@@ -210,10 +225,11 @@ class IdeaLogWatcher {
             "fetchagent", "bgagent" -> FeatureType.CHAT_AGENT
             else              -> FeatureType.CHAT_ASK
         }
+        val model = resolveModel()
         val interaction = Interaction(
             timestamp    = ts,
-            model        = currentModel,
-            provider     = inferProvider(currentModel),
+            model        = model,
+            provider     = inferProvider(model),
             featureType  = featureType,
             inputTokens  = 3000L,
             outputTokens = estimatedOut,

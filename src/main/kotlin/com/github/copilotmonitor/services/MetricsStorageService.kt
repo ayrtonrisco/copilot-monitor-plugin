@@ -136,14 +136,32 @@ open class MetricsStorageService {
                 ps.setString(3, "initial schema")
                 ps.executeUpdate()
             }
+
+            // v2: deduplication index to prevent re-inserting the same interaction from file re-parsing
+            val hasV2 = conn.prepareStatement("SELECT COUNT(*) FROM schema_version WHERE version = 2").use { ps ->
+                ps.executeQuery().use { rs -> rs.next() && rs.getInt(1) > 0 }
+            }
+            if (!hasV2) {
+                stmt.execute(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_interactions_dedup ON interactions(session_id, timestamp, model)"
+                )
+                conn.prepareStatement(
+                    "INSERT OR IGNORE INTO schema_version (version, applied_at, description) VALUES (?, ?, ?)"
+                ).use { ps ->
+                    ps.setInt(1, 2)
+                    ps.setString(2, Instant.now().toString())
+                    ps.setString(3, "deduplication unique index on interactions")
+                    ps.executeUpdate()
+                }
+            }
         }
     }
 
     fun insertInteraction(interaction: Interaction) {
         withConnection { conn ->
             try {
-                conn.prepareStatement("""
-                    INSERT INTO interactions (timestamp, session_id, model, provider, feature_type,
+                val inserted = conn.prepareStatement("""
+                    INSERT OR IGNORE INTO interactions (timestamp, session_id, model, provider, feature_type,
                         input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens,
                         reasoning_tokens, latency_ms, ttft_ms, finish_reason, accepted, is_estimated)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -164,6 +182,10 @@ open class MetricsStorageService {
                     ps.setObject(14, interaction.accepted?.let { if (it) 1 else 0 })
                     ps.setInt(15, if (interaction.isEstimated) 1 else 0)
                     ps.executeUpdate()
+                }
+                if (inserted > 0) {
+                    val date = interaction.timestamp.atZone(ZoneId.systemDefault()).toLocalDate().format(dateFormatter)
+                    refreshDailySummaryForDate(conn, date)
                 }
             } catch (e: Exception) {
                 logger.warn("Failed to insert interaction: ${e.message}")
@@ -324,42 +346,44 @@ open class MetricsStorageService {
 
     fun refreshDailySummary() {
         val today = LocalDate.now().format(dateFormatter)
-        withConnection { conn ->
-            try {
-                conn.prepareStatement("""
-                    INSERT OR REPLACE INTO daily_summary
-                        (date, model, feature_type, total_input_tokens, total_output_tokens,
-                         cache_read_tokens, cache_hit_rate, acceptance_rate, avg_latency_ms,
-                         avg_ttft_ms, cost_estimate_usd, interaction_count, error_count)
-                    SELECT
-                        date(timestamp) as d,
-                        model,
-                        feature_type,
-                        SUM(input_tokens),
-                        SUM(output_tokens),
-                        SUM(cache_read_tokens),
-                        CASE WHEN SUM(input_tokens) > 0
-                             THEN CAST(SUM(cache_read_tokens) AS REAL) / SUM(input_tokens)
-                             ELSE 0.0 END,
-                        CASE WHEN COUNT(CASE WHEN accepted IS NOT NULL THEN 1 END) > 0
-                             THEN CAST(SUM(CASE WHEN accepted = 1 THEN 1 ELSE 0 END) AS REAL)
-                                  / COUNT(CASE WHEN accepted IS NOT NULL THEN 1 END)
-                             ELSE NULL END,
-                        AVG(CASE WHEN latency_ms >= 0 THEN latency_ms ELSE NULL END),
-                        AVG(CASE WHEN ttft_ms >= 0 THEN ttft_ms ELSE NULL END),
-                        0.0,
-                        COUNT(*),
-                        SUM(CASE WHEN finish_reason = 'ERROR' THEN 1 ELSE 0 END)
-                    FROM interactions
-                    WHERE date(timestamp) = ?
-                    GROUP BY date(timestamp), model, feature_type
-                """.trimIndent()).use { ps ->
-                    ps.setString(1, today)
-                    ps.executeUpdate()
-                }
-            } catch (e: Exception) {
-                logger.warn("Failed to refresh daily summary: ${e.message}")
+        withConnection { conn -> refreshDailySummaryForDate(conn, today) }
+    }
+
+    private fun refreshDailySummaryForDate(conn: Connection, date: String) {
+        try {
+            conn.prepareStatement("""
+                INSERT OR REPLACE INTO daily_summary
+                    (date, model, feature_type, total_input_tokens, total_output_tokens,
+                     cache_read_tokens, cache_hit_rate, acceptance_rate, avg_latency_ms,
+                     avg_ttft_ms, cost_estimate_usd, interaction_count, error_count)
+                SELECT
+                    date(timestamp) as d,
+                    model,
+                    feature_type,
+                    SUM(input_tokens),
+                    SUM(output_tokens),
+                    SUM(cache_read_tokens),
+                    CASE WHEN SUM(input_tokens) > 0
+                         THEN CAST(SUM(cache_read_tokens) AS REAL) / SUM(input_tokens)
+                         ELSE 0.0 END,
+                    CASE WHEN COUNT(CASE WHEN accepted IS NOT NULL THEN 1 END) > 0
+                         THEN CAST(SUM(CASE WHEN accepted = 1 THEN 1 ELSE 0 END) AS REAL)
+                              / COUNT(CASE WHEN accepted IS NOT NULL THEN 1 END)
+                         ELSE NULL END,
+                    AVG(CASE WHEN latency_ms >= 0 THEN latency_ms ELSE NULL END),
+                    AVG(CASE WHEN ttft_ms >= 0 THEN ttft_ms ELSE NULL END),
+                    0.0,
+                    COUNT(*),
+                    SUM(CASE WHEN finish_reason = 'ERROR' THEN 1 ELSE 0 END)
+                FROM interactions
+                WHERE date(timestamp) = ?
+                GROUP BY date(timestamp), model, feature_type
+            """.trimIndent()).use { ps ->
+                ps.setString(1, date)
+                ps.executeUpdate()
             }
+        } catch (e: Exception) {
+            logger.warn("Failed to refresh daily summary for $date: ${e.message}")
         }
     }
 

@@ -87,6 +87,18 @@ class ModelConfigRepository {
 
     fun getMaxPrompt(modelId: String): Long = get(modelId).maxPrompt
 
+    fun getLastKnownModel(): String? {
+        return storage.withConnection { conn ->
+            try {
+                conn.prepareStatement(
+                    "SELECT model FROM interactions WHERE model != 'unknown' ORDER BY timestamp DESC LIMIT 1"
+                ).use { ps ->
+                    ps.executeQuery().use { rs -> if (rs.next()) rs.getString(1) else null }
+                }
+            } catch (_: Exception) { null }
+        }
+    }
+
     fun upsert(model: ModelConfig) {
         cache[model.modelId] = model
         storage.withConnection { conn ->

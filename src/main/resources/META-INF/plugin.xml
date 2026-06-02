@@ -1,4 +1,4 @@
-<idea-plugin>
+<idea-plugin dynamic="true">
     <id>com.github.copilotmonitor</id>
     <name>Copilot Monitor</name>
     <vendor email="xayrtonx@gmail.com"
@@ -23,6 +23,15 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <b>1.1.0 — Bug Fixes</b>
+        <ul>
+          <li>Fix: token counter no longer inflates from Copilot auth/telemetry requests — only real AI completions are counted</li>
+          <li>Fix: all dashboard panels (Context, Tokens, Cache, Performance, Models) now display data correctly</li>
+          <li>Fix: daily/weekly charts populate immediately after the first interaction</li>
+          <li>Fix: plugin can be enabled/disabled without IDE restart (dynamic plugin support)</li>
+          <li>Fix: removed internal API usage (AppLifecycleListener → postStartupActivity)</li>
+          <li>Fix: duplicate interactions no longer inserted when Copilot log files are re-read</li>
+        </ul>
         <b>1.0.0 — Initial Release</b>
         <ul>
           <li>Context window utilization monitor with live tab breakdown</li>
@@ -93,6 +102,10 @@
             displayType="BALLOON"
             toolWindowId="Copilot Monitor"/>
 
+        <!-- Startup -->
+        <postStartupActivity
+            implementation="com.github.copilotmonitor.CopilotMonitorStartupActivity"/>
+
         <!-- Settings -->
         <applicationConfigurable
             parentId="tools"
@@ -103,9 +116,6 @@
     </extensions>
 
     <applicationListeners>
-        <listener
-            class="com.github.copilotmonitor.CopilotMonitorStartupListener"
-            topic="com.intellij.ide.AppLifecycleListener"/>
         <listener
             class="com.github.copilotmonitor.CopilotMonitorDynamicPluginListener"
             topic="com.intellij.ide.plugins.DynamicPluginListener"/>
