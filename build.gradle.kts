@@ -64,7 +64,7 @@ intellijPlatform {
     }
     publishing {
         token = providers.environmentVariable("PUBLISH_TOKEN")
-        channels = listOf(providers.environmentVariable("PUBLISH_CHANNEL").orElse("default"))
+        channels.set(providers.environmentVariable("PUBLISH_CHANNEL").orElse("default").map { listOf(it) })
     }
 }
 
