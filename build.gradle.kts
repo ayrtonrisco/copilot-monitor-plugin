@@ -1,18 +1,26 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("java")
-    id("org.jetbrains.kotlin.jvm") version "1.9.25"
-    id("org.jetbrains.intellij") version "1.17.4"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.25"
+    id("org.jetbrains.kotlin.jvm") version "2.1.0"
+    id("org.jetbrains.intellij.platform") version "2.2.1"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.1.0"
     id("jacoco")
 }
 
 group = providers.gradleProperty("pluginGroup").get()
 version = providers.gradleProperty("pluginVersion").get()
 
+kotlin {
+    jvmToolchain(21)
+}
+
 repositories {
     mavenCentral()
+    intellijPlatform {
+        defaultRepositories()
+    }
 }
 
 dependencies {
@@ -20,7 +28,7 @@ dependencies {
     implementation("org.xerial:sqlite-jdbc:3.46.0.0")
 
     // JSON serialization
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 
     // OpenTelemetry SDK
     implementation("io.opentelemetry:opentelemetry-api:1.38.0")
@@ -33,22 +41,29 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-params:5.10.3")
     testImplementation("io.mockk:mockk:1.13.11")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    intellijPlatform {
+        intellijIdeaCommunity("2025.1")
+        instrumentationTools()
+        pluginVerifier()
+    }
 }
 
-intellij {
-    pluginName = providers.gradleProperty("pluginName").get()
-    version = providers.gradleProperty("platformVersion").get()
-    type = providers.gradleProperty("platformType").get()
-    plugins = listOf()
-    downloadSources = true
-    updateSinceUntilBuild = true
+intellijPlatform {
+    pluginConfiguration {
+        name = providers.gradleProperty("pluginName").get()
+        ideaVersion {
+            sinceBuild = providers.gradleProperty("pluginSinceBuild")
+            untilBuild = providers.gradleProperty("pluginUntilBuild")
+        }
+    }
 }
 
 tasks {
     withType<KotlinCompile> {
-        kotlinOptions {
-            jvmTarget = "17"
-            freeCompilerArgs = listOf(
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_21)
+            freeCompilerArgs.addAll(
                 "-Xjvm-default=all",
                 "-opt-in=kotlin.RequiresOptIn"
             )
@@ -56,13 +71,8 @@ tasks {
     }
 
     withType<JavaCompile> {
-        sourceCompatibility = "17"
-        targetCompatibility = "17"
-    }
-
-    patchPluginXml {
-        sinceBuild = providers.gradleProperty("pluginSinceBuild").get()
-        untilBuild = providers.gradleProperty("pluginUntilBuild").get()
+        sourceCompatibility = "21"
+        targetCompatibility = "21"
     }
 
     test {

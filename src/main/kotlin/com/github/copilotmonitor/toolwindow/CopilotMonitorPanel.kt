@@ -144,8 +144,8 @@ class CopilotMonitorPanel(private val project: Project) : Disposable {
                 put("currentModel", status.currentModel)
                 put("warning", status.warning?.name ?: "")
                 putJsonArray("recommendations") {
-                    contextService.generateRecommendations(status).forEach {
-                        add(kotlinx.serialization.json.JsonPrimitive(it))
+                    contextService.generateRecommendations(status).forEach { rec: String ->
+                        add(JsonPrimitive(rec))
                     }
                 }
             }
