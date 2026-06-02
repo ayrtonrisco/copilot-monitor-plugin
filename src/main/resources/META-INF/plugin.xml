@@ -1,12 +1,43 @@
 <idea-plugin>
     <id>com.github.copilotmonitor</id>
     <name>Copilot Monitor</name>
-    <vendor email="support@copilot-monitor.dev" url="https://github.com/copilot-monitor">Copilot Monitor</vendor>
+    <vendor email="xayrtonx@gmail.com"
+            url="https://github.com/ayrtonrisco/copilot-monitor-plugin">
+        Ayrton Rafael Risco Torres (with the help of Claude)
+    </vendor>
 
     <description><![CDATA[
-        Monitor GitHub Copilot AI usage in real time: context window utilization, LLM cache efficiency,
-        token consumption, latency, and productivity metrics. Privacy-first: all data local by default.
+        <h2>Copilot Monitor</h2>
+        <p>Real-time visibility into your GitHub Copilot AI usage — directly inside IntelliJ.</p>
+        <ul>
+          <li><b>Context Window</b> — live utilization bar with tab-by-tab breakdown and warnings before you hit limits</li>
+          <li><b>Token &amp; Cost Tracking</b> — daily/monthly totals, per-model breakdown, budget gauge with 75/90/100% alerts</li>
+          <li><b>LLM Cache Analysis</b> — cache hit rate trend, savings estimate, and actionable recommendations</li>
+          <li><b>Performance Metrics</b> — TTFT histogram, latency by model, error rate, finish-reason distribution</li>
+          <li><b>Productivity Score</b> — acceptance rate, fluency score, feature-usage breakdown</li>
+          <li><b>Model Comparison</b> — side-by-side context window vs. Copilot limit, cost/1K, cache support</li>
+          <li><b>OpenTelemetry Export</b> (opt-in) — send spans to any OTLP backend (Grafana, Jaeger, Datadog…)</li>
+        </ul>
+        <p><b>Privacy-first:</b> all data stays local (SQLite). No code, prompts, or file names are ever stored or logged. No network calls unless you opt in.</p>
+        <p>Source: <a href="https://github.com/ayrtonrisco/copilot-monitor-plugin">github.com/ayrtonrisco/copilot-monitor-plugin</a></p>
     ]]></description>
+
+    <change-notes><![CDATA[
+        <b>1.0.0 — Initial Release</b>
+        <ul>
+          <li>Context window utilization monitor with live tab breakdown</li>
+          <li>Token consumption tracking (input, output, cache) across all Copilot features</li>
+          <li>Cost estimation against configurable monthly budget with 75/90/100% alerts</li>
+          <li>LLM cache hit rate analysis and savings estimation</li>
+          <li>Performance metrics: TTFT histogram, latency by model, error rate</li>
+          <li>Productivity score and acceptance rate tracking</li>
+          <li>Model comparison table with context window gap visualization</li>
+          <li>OpenTelemetry export (opt-in OTLP HTTP/gRPC)</li>
+          <li>Status bar widget with color-coded token usage</li>
+          <li>Dashboard tool window with 7 panels (Chart.js via JCEF)</li>
+          <li>All data stored locally in SQLite; zero telemetry by default</li>
+        </ul>
+    ]]></change-notes>
 
     <depends>com.intellij.modules.platform</depends>
 

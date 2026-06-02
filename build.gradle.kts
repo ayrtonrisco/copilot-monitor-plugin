@@ -56,6 +56,15 @@ intellijPlatform {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
             untilBuild = providers.gradleProperty("pluginUntilBuild")
         }
+        vendor {
+            name = "Ayrton Rafael Risco Torres (with the help of Claude)"
+            email = "xayrtonx@gmail.com"
+            url = "https://github.com/ayrtonrisco/copilot-monitor-plugin"
+        }
+    }
+    publishing {
+        token = providers.environmentVariable("PUBLISH_TOKEN")
+        channels = listOf(providers.environmentVariable("PUBLISH_CHANNEL").orElse("default"))
     }
 }
 

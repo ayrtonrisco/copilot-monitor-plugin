@@ -4,6 +4,9 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !gradle/wrapper/gradle-wrapper.properties
 
+# IntelliJ Platform Gradle Plugin cache
+.intellijPlatform/
+
 # IntelliJ IDEA
 .idea/
 *.iws
